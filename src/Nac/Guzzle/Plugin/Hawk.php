@@ -71,7 +71,7 @@ class Hawk implements SubscriberInterface
             $request->getMethod(),
             $this->offset,
             [],
-            $request->getBody(),
+            $body,
             $this->extractContentType($request)
         );
 
