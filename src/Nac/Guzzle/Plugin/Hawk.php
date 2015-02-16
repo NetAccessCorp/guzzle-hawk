@@ -10,7 +10,7 @@ use GuzzleHttp\Event\CompleteEvent;
 use GuzzleHttp\Event\SubscriberInterface;
 use GuzzleHttp\Event\RequestEvents;
 use GuzzleHttp\Stream\StreamInterface;
-use Guzzle\Http\Message\Response;
+use GuzzleHttp\Message\Response;
 
 class Hawk implements SubscriberInterface
 {
