@@ -18,14 +18,27 @@ class Hawk implements SubscriberInterface
     private $secret;
     private $offset;
     private $client;
-    private $credentials;
     private $hawkRequest;
+    private $credentials = null;
 
     public function __construct($key, $secret, $offset = 0)
     {
         $this->key = $key;
         $this->secret = $secret;
         $this->offset = $offset;
+    }
+
+    private function getCredentials()
+    {
+        if ($this->credentials == null)
+            $this->credentials = $this->generateCredentials($this->key, $this->secret);
+
+        return $this->credentials;
+    }
+
+    private function updateCredentials()
+    {
+        $this->credentials = $this->generateCredentials($this->key, $this->secret);
     }
 
     public function getEvents()
@@ -44,7 +57,7 @@ class Hawk implements SubscriberInterface
           return;
 
         $authenticated = $this->client->authenticate(
-            $this->credentials,
+            $this->get_credentials(),
             $this->hawkRequest,
             $response->getHeader('Server-Authorization'),
             array(
@@ -59,14 +72,12 @@ class Hawk implements SubscriberInterface
     {
         $request = $event->getRequest();
 
-        $this->credentials = $this->generateCredentials($this->key, $this->secret);
-
         $body = $request->getBody();
 
         if (!is_string($body))
           $body = '';
 
-        $this->hawkRequest = $this->generateHawkRequest(
+        $this->hawkRequest = $this->makeHawkRequest(
             $request->getUrl(),
             $request->getMethod(),
             $this->offset,
@@ -92,7 +103,31 @@ class Hawk implements SubscriberInterface
         return '';
     }
 
+    public function makeHawkRequest(
+        $url,
+        $method = 'GET',
+        $ext = [],
+        $payload = '',
+        $contentType = ''
+    ) {
+        $this->client = $this->buildClient($this->offset);
+
+        $requestOptions = $this->generateRequestOptions($ext, $payload, $contentType);
+
+        $request = $this->client->createRequest(
+            $this->get_credentials(),
+            $url,
+            $method,
+            $requestOptions
+        );
+
+        return $request;
+    }
+
+    // leaving the signature unchanged only for backwards compatibility
     public function generateHawkRequest(
+        $key,
+        $secret,
         $url,
         $method = 'GET',
         $offset = 0,
@@ -100,18 +135,14 @@ class Hawk implements SubscriberInterface
         $payload = '',
         $contentType = ''
     ) {
-        $this->client = $this->buildClient($offset);
+      if ($this->key != $key or $this->secret != $secret) {
+        $this->key = $key;
+        $this->secret = secret;
+        $self->updateCredentials();
+      }
+      $this->offset = $offset;
 
-        $requestOptions = $this->generateRequestOptions($ext, $payload, $contentType);
-
-        $request = $this->client->createRequest(
-            $this->credentials,
-            $url,
-            $method,
-            $requestOptions
-        );
-
-        return $request;
+      return $this->makeHawkRequest($url, $method, $ext, $payload, $contentType);
     }
 
     private function buildClient($offset)
