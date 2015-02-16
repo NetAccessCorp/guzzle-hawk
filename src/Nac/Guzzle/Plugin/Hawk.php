@@ -11,6 +11,7 @@ use GuzzleHttp\Event\SubscriberInterface;
 use GuzzleHttp\Event\RequestEvents;
 use GuzzleHttp\Message\RequestInterface;
 use GuzzleHttp\Message\Response;
+use Nac\Guzzle\Exception\HawkAuthException;
 
 class Hawk implements SubscriberInterface
 {
@@ -19,13 +20,15 @@ class Hawk implements SubscriberInterface
     private $offset;
     private $client;
     private $hawkRequest;
-    private $credentials = null;
+    private $credentials;
+    private $validate_response;
 
-    public function __construct($key, $secret, $offset = 0)
+    public function __construct($key, $secret, $offset = 0, $validate_response = false)
     {
         $this->key = $key;
         $this->secret = $secret;
         $this->offset = $offset;
+        $this->validate_response = $validate_response;
     }
 
     private function getCredentials()
@@ -51,21 +54,47 @@ class Hawk implements SubscriberInterface
 
     public function validateResponse(CompleteEvent $event)
     {
+        // skip if response validation is disabled
+        if (!$this->validate_response) {
+            return;
+        }
+
+        // get response object
         $response = $event->getResponse();
+        if (!$response instanceof Response) {
+            return;
+        }
 
-        if (!$response instanceof Response)
-          return;
+        // get server signature
+        $signature = $response->getHeader('Server-Authorization');
+        if (!$signature) {
+            // allow 4xx/5xx responses without authorization
+            if ($response->getStatusCode() >= 400 && $response->getStatusCode() < 600) {
+                return;
+            }
 
+            throw new HawkAuthException(
+                'Hawk Server-Authorization header not found',
+                $response
+            );
+        }
+
+        // validate signature
         $authenticated = $this->client->authenticate(
             $this->getCredentials(),
             $this->hawkRequest,
-            $response->getHeader('Server-Authorization'),
+            $signature,
             array(
                 'payload' => $response->getBody(),
                 'content_type' => $response->getHeader('Content-Type'),
-            ));
-
-        $response->addHeader('Hawk-Verified', $authenticated ? '1' : '0');
+            )
+        );
+        if (!$authenticated) {
+            throw new HawkAuthException(
+                'Response has not passed hawk validation',
+                $response
+            );
+        }
     }
 
     public function signRequest(BeforeEvent $event)
