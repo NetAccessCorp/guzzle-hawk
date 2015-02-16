@@ -65,7 +65,7 @@ class Hawk implements SubscriberInterface
                 'content_type' => $response->getHeader('Content-Type'),
             ));
 
-        $response->addHeader('Hawk-Verification', $authenticated);
+        $response->addHeader('Hawk-Verified', $authenticated ? '1' : '0');
     }
 
     public function signRequest(BeforeEvent $event)
