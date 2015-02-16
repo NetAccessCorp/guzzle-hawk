@@ -9,7 +9,7 @@ use GuzzleHttp\Event\BeforeEvent;
 use GuzzleHttp\Event\CompleteEvent;
 use GuzzleHttp\Event\SubscriberInterface;
 use GuzzleHttp\Event\RequestEvents;
-use GuzzleHttp\Stream\StreamInterface;
+use GuzzleHttp\Message\RequestInterface;
 use GuzzleHttp\Message\Response;
 
 class Hawk implements SubscriberInterface
@@ -61,6 +61,11 @@ class Hawk implements SubscriberInterface
 
         $this->credentials = $this->generateCredentials($this->key, $this->secret);
 
+        $body = $request->getBody();
+
+        if (!$body instanceof string)
+          $body = '';
+
         $this->hawkRequest = $this->generateHawkRequest(
             $request->getUrl(),
             $request->getMethod(),
@@ -76,7 +81,7 @@ class Hawk implements SubscriberInterface
         );
     }
 
-    public function extractContentType(StreamInterface $request) {
+    public function extractContentType(RequestInterface $request) {
         $headers_lower = array_change_key_case($request->getHeaders(), CASE_LOWER);
 
         if (array_key_exists('content-type', $headers_lower) && \
