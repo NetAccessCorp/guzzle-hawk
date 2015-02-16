@@ -57,7 +57,7 @@ class Hawk implements SubscriberInterface
           return;
 
         $authenticated = $this->client->authenticate(
-            $this->get_credentials(),
+            $this->getCredentials(),
             $this->hawkRequest,
             $response->getHeader('Server-Authorization'),
             array(
@@ -81,7 +81,6 @@ class Hawk implements SubscriberInterface
             $request->getUrl(),
             $request->getMethod(),
             $this->offset,
-            [],
             $body,
             $this->extractContentType($request)
         );
@@ -115,7 +114,7 @@ class Hawk implements SubscriberInterface
         $requestOptions = $this->generateRequestOptions($ext, $payload, $contentType);
 
         $request = $this->client->createRequest(
-            $this->get_credentials(),
+            $this->getCredentials(),
             $url,
             $method,
             $requestOptions
@@ -138,7 +137,7 @@ class Hawk implements SubscriberInterface
       if ($this->key != $key or $this->secret != $secret) {
         $this->key = $key;
         $this->secret = secret;
-        $self->updateCredentials();
+        $this->updateCredentials();
       }
       $this->offset = $offset;
 
