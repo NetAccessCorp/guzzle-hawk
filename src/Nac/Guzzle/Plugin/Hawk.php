@@ -9,12 +9,17 @@ use GuzzleHttp\Event\BeforeEvent;
 use GuzzleHttp\Event\CompleteEvent;
 use GuzzleHttp\Event\SubscriberInterface;
 use GuzzleHttp\Event\RequestEvents;
+use GuzzleHttp\Stream\StreamInterface;
+use Guzzle\Http\Message\Response;
 
 class Hawk implements SubscriberInterface
 {
     private $key;
     private $secret;
     private $offset;
+    private $client;
+    private $credentials;
+    private $hawkRequest;
 
     public function __construct($key, $secret, $offset = 0)
     {
@@ -34,6 +39,9 @@ class Hawk implements SubscriberInterface
     public function validateResponse(CompleteEvent $event)
     {
         $response = $event->getResponse();
+
+        if (!$response instanceof Response)
+          return;
 
         $authenticated = $this->client->authenticate(
             $this->credentials,
@@ -68,7 +76,7 @@ class Hawk implements SubscriberInterface
         );
     }
 
-    public function extractContentType($request) {
+    public function extractContentType(StreamInterface $request) {
         $headers_lower = array_change_key_case($request->getHeaders(), CASE_LOWER);
 
         if (array_key_exists('content-type', $headers_lower) && \
