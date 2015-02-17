@@ -103,7 +103,7 @@ class Hawk implements SubscriberInterface
 
         $body = $request->getBody();
 
-        if (!is_string($body))
+        if (!isset($body))
           $body = '';
 
         $this->hawkRequest = $this->makeHawkRequest(
